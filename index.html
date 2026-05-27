@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>LifeSeeker FPV</title>
+
+<!-- PWA Meta Tags -->
+<meta name="application-name" content="LifeSeeker FPV">
+<meta name="description" content="Hệ thống camera cứu hộ thông minh trên xuồng">
+<meta name="theme-color" content="#00dcff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LifeSeeker">
+<meta name="msapplication-TileColor" content="#0a0d14">
+
+<!-- Icons -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+
+<!-- Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════
+   TOKENS
+═══════════════════════════════ */
+:root {
+  --ink:   #0a0d14;
+  --ink2:  #0e1420;
+  --glass: rgba(12,18,32,0.88);
+  --line:  rgba(0,220,255,0.14);
+  --c0:    #00dcff;
+  --c1:    #00ffaa;
+  --c2:    #ff3c6e;
+  --c3:    #ffa620;
+  --dim:   rgba(0,220,255,0.35);
+  --txt:   #aaccdd;
+  --muted: #2a4858;
+  --mono:  'JetBrains Mono', monospace;
+  --disp:  'Bebas Neue', sans-serif;
+  --gC:    0 0 14px rgba(0,220,255,0.55), 0 0 50px rgba(0,220,255,0.18);
+  --gG:    0 0 14px rgba(0,255,170,0.55), 0 0 50px rgba(0,255,170,0.18);
+  --gR:    0 0 14px rgba(255,60,110,0.7),  0 0 40px rgba(255,60,110,0.2);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--txt);font-family:var(--mono)}
+button,input{font-family:inherit}
+
+/* Safe area cho notch/home indicator iPhone */
+body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+/* Grain */
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.022;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px}
+
+/* ═══════════════════════════════
+   INSTALL BANNER (hiện khi chưa cài PWA)
+═══════════════════════════════ */
+#installBanner{
+  position:fixed;bottom:0;left:0;right:0;z-index:9998;
+  background:rgba(12,18,32,0.97);
+  border-top:1px solid var(--line);
+  padding:12px 16px;
+  display:none;align-items:center;gap:12px;
+  backdrop-filter:blur(16px);
+  animation:slideUp .4s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#installBanner.show{display:flex}
+.ib-icon{font-size:28px}
+.ib-text{flex:1}
+.ib-title{font-family:var(--disp);font-size:14px;letter-spacing:2px;color:var(--c0)}
+.ib-sub{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px}
+.ib-btn{padding:8px 16px;background:var(--c0);border:none;border-radius:7px;
+  color:var(--ink);font-family:var(--disp);font-size:13px;letter-spacing:2px;cursor:pointer}
+.ib-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px}
+
+/* ═══════════════════════════════
+   SETUP SCREEN
+═══════════════════════════════ */
+#setupScreen{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 100% 80% at 50% -10%,rgba(0,100,180,0.22) 0%,transparent 60%),var(--ink);
+}
+#setupScreen::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,220,255,0.05) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,220,255,0.05) 1px,transparent 1px);
+  background-size:48px 48px;
+  animation:gridDrift 20s linear infinite;
+}
+@keyframes gridDrift{from{background-position:0 0}to{background-position:48px 48px}}
+
+.setup-card{
+  position:relative;z-index:1;width:min(440px,96vw);
+  background:var(--glass);border:1px solid var(--line);border-radius:18px;
+  padding:36px 32px;backdrop-filter:blur(24px);
+  box-shadow:0 0 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.04);
+  animation:cardUp .55s cubic-bezier(.16,1,.3,1);
+}
+@keyframes cardUp{from{opacity:0;transform:translateY(28px) scale(.97)}to{opacity:1;transform:none}}
+.setup-card::before{
+  content:'';position:absolute;top:-1px;left:30px;right:30px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--c0),var(--c1),transparent);border-radius:2px;
+}
+
+.brand{text-align:center;margin-bottom:30px}
+.brand-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(0,220,255,0.15),rgba(0,255,170,0.08));
+  border:1px solid rgba(0,220,255,0.25);font-size:26px;margin-bottom:12px;
+  box-shadow:var(--gC);
+}
+.brand h1{
+  font-family:var(--disp);font-size:28px;letter-spacing:5px;
+  background:linear-gradient(90deg,var(--c0),var(--c1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.brand-ver{font-size:9px;color:var(--muted);letter-spacing:3px;margin-top:4px}
+
+.field{margin-bottom:18px}
+.field-label{display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:2.5px;color:var(--muted);margin-bottom:7px}
+.field-label::before{content:'';display:inline-block;width:14px;height:1px;background:var(--dim)}
+.row{display:flex;gap:8px}
+.inp{
+  flex:1;background:rgba(0,220,255,0.04);border:1px solid var(--line);border-radius:9px;
+  padding:11px 15px;color:var(--c0);font-size:15px;letter-spacing:1px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.inp:focus{border-color:rgba(0,220,255,0.5);box-shadow:0 0 0 3px rgba(0,220,255,0.08)}
+.inp::placeholder{color:var(--muted)}
+.inp-sm{width:80px;flex:none;color:var(--muted);text-align:center;font-size:13px}
+.inp-sm:focus{color:var(--c0)}
+
+.btn-connect{
+  width:100%;padding:14px;margin-top:4px;background:transparent;
+  border:1px solid rgba(0,220,255,0.4);border-radius:10px;
+  color:var(--c0);font-family:var(--disp);font-size:18px;letter-spacing:5px;
+  cursor:pointer;position:relative;overflow:hidden;transition:color .25s,box-shadow .25s;
+}
+.btn-connect::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,var(--c0),var(--c1));
+  transform:scaleX(0);transform-origin:left;
+  transition:transform .3s cubic-bezier(.16,1,.3,1);z-index:-1;
+}
+.btn-connect:hover{color:var(--ink);box-shadow:var(--gC)}
+.btn-connect:hover::before{transform:scaleX(1)}
+.btn-connect:active{transform:scale(.98)}
+
+/* PWA install hint */
+.pwa-hint{
+  margin-top:16px;padding:10px 14px;
+  background:rgba(0,255,170,0.05);border:1px solid rgba(0,255,170,0.12);
+  border-radius:8px;font-size:10px;color:var(--muted);line-height:1.8;
+  letter-spacing:.5px;
+}
+.pwa-hint b{color:var(--c1)}
+
+.hints{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;
+       display:flex;flex-direction:column;gap:5px}
+.hint-row{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+.hint-row::before{content:'›';color:var(--dim)}
+.hint-row code{color:var(--c1);background:rgba(0,255,170,0.07);padding:1px 6px;border-radius:3px;font-size:9px}
+
+/* ═══════════════════════════════
+   APP
+═══════════════════════════════ */
+#app{display:none;position:fixed;inset:0;z-index:1;flex-direction:column}
+
+/* Topbar */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;height:46px;flex-shrink:0;
+  background:rgba(8,12,22,0.97);border-bottom:1px solid var(--line);
+  position:relative;z-index:10;
+}
+.tb-brand{font-family:var(--disp);font-size:16px;letter-spacing:4px;
+  background:linear-gradient(90deg,var(--c0),var(--c1));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tb-sub{font-size:8px;color:var(--muted);letter-spacing:2px}
+
+.tb-center{display:flex;align-items:center;gap:14px}
+.tb-chip{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);letter-spacing:1px}
+.tb-chip b{font-family:var(--disp);font-size:14px;color:var(--c0);font-weight:400;letter-spacing:1px}
+
+.status-pill{display:flex;align-items:center;gap:6px;padding:4px 10px;
+  background:rgba(0,255,170,0.07);border:1px solid rgba(0,255,170,0.18);border-radius:20px;}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--c1);box-shadow:var(--gG);animation:pulse 2s infinite}
+.sdot.off{background:var(--c2)!important;box-shadow:var(--gR)!important;animation:none!important}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.5}}
+.slbl{font-size:9px;letter-spacing:2px;color:var(--c1)}
+.slbl.off{color:var(--c2)}
+
+.disc-btn{padding:4px 10px;background:transparent;border:1px solid rgba(255,60,110,0.25);
+  border-radius:5px;color:rgba(255,60,110,0.6);font-size:9px;letter-spacing:1.5px;
+  cursor:pointer;transition:all .2s;}
+.disc-btn:hover{border-color:var(--c2);color:var(--c2);background:rgba(255,60,110,0.08)}
+
+/* Viewport */
+.vp-wrap{flex:1;position:relative;overflow:hidden;background:#000}
+#stream{width:100%;height:100%;object-fit:contain;display:block;transition:filter .3s}
+#stream.loading{filter:blur(4px) brightness(.3)}
+
+/* HUD corners */
+.hc{position:absolute;pointer-events:none}
+.hc::before,.hc::after{content:'';position:absolute;background:var(--c0);opacity:.5}
+.hc.tl{top:12px;left:12px}.hc.tl::before{top:0;left:0;width:18px;height:1px}.hc.tl::after{top:0;left:0;width:1px;height:18px}
+.hc.tr{top:12px;right:12px}.hc.tr::before{top:0;right:0;width:18px;height:1px}.hc.tr::after{top:0;right:0;width:1px;height:18px}
+.hc.bl{bottom:54px;left:12px}.hc.bl::before{bottom:0;left:0;width:18px;height:1px}.hc.bl::after{bottom:0;left:0;width:1px;height:18px}
+.hc.br{bottom:54px;right:12px}.hc.br::before{bottom:0;right:0;width:18px;height:1px}.hc.br::after{bottom:0;right:0;width:1px;height:18px}
+
+/* HUD panels */
+.hud{position:absolute;pointer-events:none;font-size:9.5px;line-height:1.9;letter-spacing:.8px;color:rgba(0,220,255,0.65)}
+.hud.tl{top:18px;left:20px;padding-left:6px;border-left:1px solid var(--dim)}
+.hud.tr{top:18px;right:20px;text-align:right;padding-right:6px;border-right:1px solid var(--dim)}
+.hud.bl{bottom:60px;left:20px;padding-left:6px;border-left:1px solid var(--dim)}
+.hud.br{bottom:60px;right:20px;text-align:right;padding-right:6px;border-right:1px solid var(--dim)}
+.hv{color:rgba(0,255,170,0.85)}
+
+.rec{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:5px;padding:3px 10px;
+  background:rgba(0,0,0,0.5);border:1px solid rgba(0,220,255,0.2);
+  border-radius:20px;font-size:9px;letter-spacing:2px;color:var(--c0);pointer-events:none}
+.rec-dot{width:5px;height:5px;border-radius:50%;background:var(--c2);animation:pulse 1s infinite}
+
+/* No signal */
+#noSig{position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.88)}
+.ns-icon{font-size:52px;opacity:.3;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ns-txt{font-family:var(--disp);font-size:18px;letter-spacing:5px;color:var(--muted)}
+.ns-sub{font-size:10px;color:var(--muted);letter-spacing:2px}
+.retry-btn{padding:8px 22px;background:transparent;border:1px solid var(--line);
+  border-radius:7px;color:var(--c0);font-size:11px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.retry-btn:hover{border-color:var(--c0);box-shadow:var(--gC)}
+
+/* PIR alert */
+#pirBanner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:none;flex-direction:column;align-items:center;gap:6px;
+  padding:18px 28px;background:rgba(255,60,110,0.12);border:1px solid var(--c2);
+  border-radius:12px;backdrop-filter:blur(10px);animation:alertPulse .6s infinite}
+@keyframes alertPulse{0%,100%{box-shadow:0 0 20px rgba(255,60,110,0.3)}50%{box-shadow:0 0 40px rgba(255,60,110,0.6)}}
+.pir-emoji{font-size:30px}
+.pir-txt{font-family:var(--disp);font-size:20px;letter-spacing:4px;color:var(--c2)}
+.pir-sub{font-size:10px;letter-spacing:2px;color:rgba(255,60,110,0.7)}
+
+/* Control bar */
+.ctrl-bar{flex-shrink:0;height:52px;background:rgba(8,12,22,0.97);
+  border-top:1px solid var(--line);display:flex;align-items:center;
+  padding:0 14px;gap:10px;position:relative;z-index:10;}
+
+.srv{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.srv-lbl{font-size:9px;letter-spacing:2px;color:var(--muted);flex-shrink:0}
+.angle-num{font-family:var(--disp);font-size:24px;letter-spacing:1px;
+  color:var(--c0);text-shadow:var(--gC);min-width:52px;text-align:right;flex-shrink:0;line-height:1}
+.sl-wrap{flex:1;min-width:0}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;
+  outline:none;cursor:pointer;border-radius:2px;
+  background:linear-gradient(to right,var(--c0) 0%,var(--c0) var(--pct,50%),var(--muted) var(--pct,50%),var(--muted) 100%)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle,#fff 0%,var(--c0) 60%);box-shadow:var(--gC);cursor:pointer;transition:transform .1s}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.3)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;
+  background:var(--c0);box-shadow:var(--gC);cursor:pointer}
+
+.vdiv{width:1px;height:28px;background:var(--line);flex-shrink:0}
+
+.presets{display:flex;gap:4px;flex-shrink:0}
+.pb{padding:5px 8px;background:rgba(0,220,255,0.05);border:1px solid var(--line);
+  border-radius:5px;color:var(--muted);font-size:10px;cursor:pointer;transition:all .15s}
+.pb:hover{border-color:var(--c0);color:var(--c0);background:rgba(0,220,255,0.1)}
+.pb:active{transform:scale(.92)}
+.pb.ctr{border-color:rgba(0,255,170,0.25);color:var(--c1)}
+.pb.ctr:hover{background:rgba(0,255,170,0.1)}
+
+.arrows{display:flex;gap:4px;flex-shrink:0}
+.arrow{width:36px;height:36px;border-radius:8px;background:rgba(0,220,255,0.05);
+  border:1px solid var(--line);color:var(--c0);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+  user-select:none;-webkit-user-select:none}
+.arrow:hover{background:rgba(0,220,255,0.14);box-shadow:var(--gC)}
+.arrow.pressed{background:rgba(0,220,255,0.25);transform:scale(.9)}
+
+.action-btn{width:36px;height:36px;border-radius:8px;background:rgba(0,220,255,0.05);
+  border:1px solid var(--line);color:var(--c0);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.action-btn:hover{background:rgba(0,220,255,0.14);box-shadow:var(--gC)}
+.action-btn.on{border-color:gold;color:gold;background:rgba(255,215,0,0.1)}
+
+/* Toast */
+#toast{position:fixed;bottom:62px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--glass);border:1px solid var(--line);border-radius:8px;
+  padding:7px 18px;font-size:10px;letter-spacing:1.5px;z-index:9999;
+  opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;backdrop-filter:blur(16px)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Responsive */
+@media(max-width:560px){
+  .presets{display:none}
+  .hud.tr,.hud.bl{display:none}
+  .tb-center .tb-chip:not(:first-child){display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Install Banner -->
+<div id="installBanner">
+  <div class="ib-icon">🚤</div>
+  <div class="ib-text">
+    <div class="ib-title">LIFESEEKER FPV</div>
+    <div class="ib-sub">Cài app để dùng nhanh hơn</div>
+  </div>
+  <button class="ib-btn" onclick="installPWA()">CÀI ĐẶT</button>
+  <button class="ib-close" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- Setup -->
+<div id="setupScreen">
+<div class="setup-card">
+  <div class="brand">
+    <div class="brand-icon">🚤</div>
+    <h1>LIFESEEKER</h1>
+    <div class="brand-ver">FPV RESCUE CONTROLLER v2.1</div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">IP ADDRESS ESP32-CAM</div>
+    <div class="row">
+      <input class="inp" id="ipIn" type="text" placeholder="192.168.1.100"
+        autocomplete="off" spellcheck="false" inputmode="url">
+      <input class="inp inp-sm" id="portIn" type="number" value="80" min="1" max="65535">
+    </div>
+  </div>
+  <div class="field">
+    <div class="field-label">STREAM PORT (MJPEG)</div>
+    <input class="inp" id="spIn" type="number" value="81" min="1" max="65535">
+  </div>
+
+  <button class="btn-connect" onclick="connect()">CONNECT</button>
+
+  <div class="pwa-hint" id="pwaHint" style="display:none">
+    💡 Nhấn <b>CÀI ĐẶT</b> bên dưới để thêm app vào màn hình chính — dùng như app thật!
+  </div>
+
+  <div class="hints">
+    <div class="hint-row">Mở Serial Monitor (<code>115200</code>) để xem IP ESP32</div>
+    <div class="hint-row">Điện thoại &amp; máy tính phải cùng mạng WiFi</div>
+    <div class="hint-row">Stream: <code>http://[IP]:81/stream</code></div>
+  </div>
+</div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="topbar">
+    <div>
+      <div class="tb-brand">LIFESEEKER</div>
+      <div class="tb-sub">FPV RESCUE SYSTEM</div>
+    </div>
+    <div class="tb-center">
+      <div class="tb-chip">SERVO <b id="tbA">90°</b></div>
+      <div class="tb-chip">FPS <b id="tbF">--</b></div>
+      <div class="tb-chip">IP <b id="tbIp">-</b></div>
+      <div class="status-pill">
+        <div class="sdot" id="sdot"></div>
+        <span class="slbl" id="slbl">LIVE</span>
+      </div>
+    </div>
+    <button class="disc-btn" onclick="disconnect()">✕ NGẮT</button>
+  </div>
+
+  <div class="vp-wrap">
+    <img id="stream" class="loading" alt="">
+    <div class="hc tl"></div><div class="hc tr"></div>
+    <div class="hc bl"></div><div class="hc br"></div>
+    <div class="hud tl">QVGA 320×240<br>MJPEG STREAM<br><span class="hv" id="hudF">FPS --</span></div>
+    <div class="hud tr">PIR: <span class="hv">ARMED</span><br>TELE: <span class="hv">ACTIVE</span><br>SERVO: <span class="hv" id="hudA">90°</span></div>
+    <div class="hud bl">LIFESEEKER-01<br><span class="hv" id="hudT">--:--:--</span></div>
+    <div class="hud br">PIR ALERTS: <span class="hv" id="hudP">0</span><br>STATUS: <span class="hv">OK</span></div>
+    <div class="rec"><div class="rec-dot"></div>REC</div>
+    <div id="noSig">
+      <div class="ns-icon">📡</div>
+      <div class="ns-txt">NO SIGNAL</div>
+      <div class="ns-sub">Kiểm tra ESP32-CAM đang chạy</div>
+      <button class="retry-btn" onclick="retryStream()">↺ THỬ LẠI</button>
+    </div>
+    <div id="pirBanner">
+      <div class="pir-emoji">🚨</div>
+      <div class="pir-txt">PHÁT HIỆN NGƯỜI!</div>
+      <div class="pir-sub">Ảnh đang gửi Telegram…</div>
+    </div>
+  </div>
+
+  <div class="ctrl-bar">
+    <div class="srv">
+      <span class="srv-lbl">SERVO</span>
+      <div class="angle-num" id="aN">90°</div>
+      <div class="sl-wrap">
+        <input type="range" id="sl" min="0" max="180" value="90"
+          oninput="onSl(this.value)" onchange="sendA(this.value)">
+      </div>
+    </div>
+    <div class="vdiv"></div>
+    <div class="presets">
+      <button class="pb" onclick="go(0)">0°</button>
+      <button class="pb" onclick="go(45)">45°</button>
+      <button class="pb ctr" onclick="go(90)">CTR</button>
+      <button class="pb" onclick="go(135)">135°</button>
+      <button class="pb" onclick="go(180)">180°</button>
+    </div>
+    <div class="vdiv"></div>
+    <div class="arrows">
+      <div class="arrow" id="bL">◀</div>
+      <div class="arrow" onclick="go(90)">●</div>
+      <div class="arrow" id="bR">▶</div>
+    </div>
+    <div class="vdiv"></div>
+    <button class="action-btn" id="btnF" title="Flash" onclick="toggleFlash()">⚡</button>
+    <button class="action-btn" title="Fullscreen" onclick="goFS()">⛶</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ────────────────────────────────────────
+let ip='', port=80, sp=81, ang=90, flash=false;
+let sTimer=null, pingTimer=null, clockTimer=null, pirTimer=null;
+let fpsTick=0, lastFt=Date.now();
+let pirCount=0, pirBannerTimer=null;
+let streaming=false;
+let deferredPrompt=null;
+
+// ── PWA INSTALL ──────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+  document.getElementById('pwaHint').style.display = 'block';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  toast('✅ App đã cài thành công!');
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') toast('✅ Đang cài app…');
+    deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+}
+
+// ── SERVICE WORKER ────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('SW registered'))
+    .catch(e => console.log('SW error:', e));
+}
+
+// ── INIT ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  try {
+    const si=localStorage.getItem('ls_ip'), sp_=localStorage.getItem('ls_port'), ss=localStorage.getItem('ls_sp');
+    if(si)  document.getElementById('ipIn').value   = si;
+    if(sp_) document.getElementById('portIn').value = sp_;
+    if(ss)  document.getElementById('spIn').value   = ss;
+  } catch(e){}
+  document.getElementById('ipIn').addEventListener('keydown', e => { if(e.key==='Enter') connect(); });
+  updateUI(90);
+});
+
+// ── CONNECT ──────────────────────────────────────
+function connect() {
+  const i = document.getElementById('ipIn').value.trim();
+  const p = parseInt(document.getElementById('portIn').value)||80;
+  const s = parseInt(document.getElementById('spIn').value)||81;
+  if(!i) { toast('⚠ Nhập IP ESP32-CAM!','warn'); return; }
+  ip=i; port=p; sp=s;
+  try { localStorage.setItem('ls_ip',i); localStorage.setItem('ls_port',p); localStorage.setItem('ls_sp',s); } catch(e){}
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('tbIp').textContent = i;
+  startStream();
+  startClock();
+  startPing();
+  startPirPoll();
+  toast('Đang kết nối ' + i + '…');
+}
+
+function disconnect() {
+  clearInterval(pingTimer); clearInterval(clockTimer); clearInterval(pirTimer);
+  stopStream();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+  setOnline(false);
+}
+
+// ── STREAM ───────────────────────────────────────
+function startStream() {
+  const img=document.getElementById('stream'), ns=document.getElementById('noSig');
+  img.className='loading'; ns.style.display='none';
+  img.src=`http://${ip}:${sp}/stream?t=${Date.now()}`;
+  img.onload=()=>{ img.className=''; setOnline(true); fpsTick++; };
+  img.onerror=()=>{ setOnline(false); ns.style.display='flex'; };
+  streaming=true;
+  setInterval(()=>{
+    const fps=Math.round(fpsTick/((Date.now()-lastFt)/1000));
+    fpsTick=0; lastFt=Date.now();
+    document.getElementById('tbF').textContent=fps;
+    document.getElementById('hudF').textContent='FPS '+fps;
+  }, 2000);
+}
+function stopStream() { document.getElementById('stream').src=''; streaming=false; }
+function retryStream() { document.getElementById('noSig').style.display='none'; setTimeout(startStream,350); }
+
+// ── SERVO ────────────────────────────────────────
+function onSl(v) { updateUI(parseInt(v)); clearTimeout(sTimer); sTimer=setTimeout(()=>sendA(v),60); }
+function go(v) { v=Math.max(0,Math.min(180,v)); document.getElementById('sl').value=v; updateUI(v); sendA(v); }
+function updateUI(v) {
+  ang=v; const s=v+'°';
+  document.getElementById('aN').textContent=s;
+  document.getElementById('tbA').textContent=s;
+  document.getElementById('hudA').textContent=s;
+  const pct=(v/180*100).toFixed(1)+'%';
+  document.getElementById('sl').style.background=
+    `linear-gradient(to right,var(--c0) 0%,var(--c0) ${pct},var(--muted) ${pct},var(--muted) 100%)`;
+}
+function sendA(v) {
+  if(!ip) return;
+  fetch(`http://${ip}:${port}/servo?angle=${v}`,{signal:AbortSignal.timeout(2000)}).catch(()=>{});
+}
+
+// ── FLASH ────────────────────────────────────────
+function toggleFlash() {
+  flash=!flash;
+  document.getElementById('btnF').classList.toggle('on',flash);
+  fetch(`http://${ip}:${port}/flash?on=${flash?1:0}`,{signal:AbortSignal.timeout(2000)}).catch(()=>{});
+  toast(flash?'⚡ Flash ON':'Flash OFF');
+}
+
+// ── STATUS ───────────────────────────────────────
+function setOnline(ok) {
+  document.getElementById('sdot').className=ok?'sdot':'sdot off';
+  document.getElementById('slbl').className=ok?'slbl':'slbl off';
+  document.getElementById('slbl').textContent=ok?'LIVE':'OFFLINE';
+}
+function startPing() {
+  pingTimer=setInterval(async()=>{
+    try { await fetch(`http://${ip}:${port}/servo?angle=${ang}`,{method:'HEAD',signal:AbortSignal.timeout(3000)}); setOnline(true); }
+    catch(e) { setOnline(false); }
+  },8000);
+}
+
+// ── CLOCK ────────────────────────────────────────
+function startClock() {
+  clockTimer=setInterval(()=>{
+    const n=new Date();
+    document.getElementById('hudT').textContent=
+      [n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+  },1000);
+}
+
+// ── PIR POLL ─────────────────────────────────────
+function startPirPoll() {
+  pirTimer=setInterval(async()=>{
+    if(!ip) return;
+    try {
+      const r=await fetch(`http://${ip}:${port}/pir`,{signal:AbortSignal.timeout(2000)});
+      const n=parseInt(await r.text());
+      if(!isNaN(n)&&n>pirCount) {
+        pirCount=n;
+        document.getElementById('hudP').textContent=pirCount;
+        showPirAlert();
+      }
+    } catch(e){}
+  },3000);
+}
+function showPirAlert() {
+  const b=document.getElementById('pirBanner');
+  b.style.display='flex';
+  clearTimeout(pirBannerTimer);
+  pirBannerTimer=setTimeout(()=>b.style.display='none',5000);
+}
+
+// ── FULLSCREEN ───────────────────────────────────
+function goFS() {
+  const v=document.querySelector('.vp-wrap');
+  (v.requestFullscreen||v.webkitRequestFullscreen||function(){}).call(v);
+}
+
+// ── KEYBOARD ─────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('app').style.display==='none') return;
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='ArrowLeft')  {e.preventDefault();go(ang-5); pressBtn('bL')}
+  if(e.key==='ArrowRight') {e.preventDefault();go(ang+5); pressBtn('bR')}
+  if(e.key===' ')          {e.preventDefault();go(90)}
+  if(e.key==='ArrowDown')  {e.preventDefault();go(0)}
+  if(e.key==='ArrowUp')    {e.preventDefault();go(180)}
+  if(e.key==='f'||e.key==='F') toggleFlash();
+});
+function pressBtn(id){const e=document.getElementById(id);if(!e)return;e.classList.add('pressed');setTimeout(()=>e.classList.remove('pressed'),160)}
+function holdRepeat(id,fn){
+  const el=document.getElementById(id);if(!el)return;
+  let iv=null;
+  const st=()=>{fn();iv=setInterval(fn,110)};
+  const sp=()=>clearInterval(iv);
+  el.addEventListener('mousedown',st);
+  el.addEventListener('touchstart',e=>{e.preventDefault();st()},{passive:false});
+  el.addEventListener('mouseup',sp);el.addEventListener('mouseleave',sp);el.addEventListener('touchend',sp);
+}
+holdRepeat('bL',()=>go(ang-5));
+holdRepeat('bR',()=>go(ang+5));
+
+// ── TOAST ────────────────────────────────────────
+let tT=null;
+function toast(msg,type){
+  const e=document.getElementById('toast');
+  e.textContent=msg; e.style.color=type==='warn'?'var(--c3)':'var(--c1)';
+  e.classList.add('show'); clearTimeout(tT);
+  tT=setTimeout(()=>e.classList.remove('show'),2400);
+}
+</script>
+</body>
+</html>

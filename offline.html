@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LifeSeeker — Offline</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0d14;color:#aaccdd;font-family:'JetBrains Mono',monospace;
+     height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;
+     background-image:linear-gradient(rgba(0,220,255,0.03) 1px,transparent 1px),
+                      linear-gradient(90deg,rgba(0,220,255,0.03) 1px,transparent 1px);
+     background-size:40px 40px;}
+.icon{font-size:56px;animation:float 3s ease-in-out infinite;filter:grayscale(1);opacity:.4}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+h1{font-family:'Bebas Neue';font-size:28px;letter-spacing:6px;color:rgba(0,220,255,0.4)}
+p{font-size:11px;letter-spacing:2px;color:#2a4858;text-align:center;line-height:2}
+.btn{margin-top:8px;padding:10px 24px;background:transparent;border:1px solid rgba(0,220,255,0.2);
+     border-radius:8px;color:rgba(0,220,255,0.5);font-family:'JetBrains Mono';font-size:11px;
+     letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn:hover{border-color:rgba(0,220,255,0.5);color:#00dcff}
+</style>
+</head>
+<body>
+<div class="icon">📡</div>
+<h1>NO CONNECTION</h1>
+<p>Không có kết nối internet<br>Vui lòng kiểm tra WiFi và thử lại</p>
+<button class="btn" onclick="location.reload()">↺ THỬ LẠI</button>
+</body>
+</html>
