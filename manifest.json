@@ -1,0 +1,15 @@
+{
+  "name": "LifeSeeker FPV",
+  "short_name": "LifeSeeker",
+  "description": "Hệ thống camera cứu hộ thông minh - FPV + GPS",
+  "start_url": "/lifeseeker_v3/",
+  "scope": "/lifeseeker_v3/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0a0d14",
+  "theme_color": "#00dcff",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
